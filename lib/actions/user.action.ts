@@ -8,6 +8,7 @@ import { error } from "console";
 import { parseStringify } from "../utils";
 import path from "path";
 import { cookies } from "next/headers";
+import { avatarPlaceholderUrl } from "@/constants";
 
 const getUserByEmail = async(email:string) => {
     const {database} = await createAdminClient()
@@ -56,7 +57,7 @@ export const sendEmailOTP = async ({email} : {email:string}) => {
             {
                 fullName,
                 email,
-                avatar:"",
+                avatar:avatarPlaceholderUrl,
                 accountId,
             }
         )
@@ -85,3 +86,5 @@ export const verifySecret = async({accountId, password}: {accountId:string; pass
     }
 
 }
+
+export const getCurrentUser = async() => {}

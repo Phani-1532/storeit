@@ -1,12 +1,12 @@
 "use server"
 
 import { StringXor } from "next/dist/compiled/webpack/webpack";
-import { createAdminClient } from "../appwrite";
+import { createAdminClient, createSessionClient } from "../appwrite";
 import { appWriteConfig } from "../appwrite/config";
 import { ID, Query } from "appwrite";
 import { error } from "console";
 import { parseStringify } from "../utils";
-import path from "path";
+import path, { parse } from "path";
 import { cookies } from "next/headers";
 import { avatarPlaceholderUrl } from "@/constants";
 
@@ -68,23 +68,39 @@ export const sendEmailOTP = async ({email} : {email:string}) => {
 }
 
 export const verifySecret = async({accountId, password}: {accountId:string; password:string}) => {
-    try{
-        const {account} =  await createAdminClient()
+    try {
+        const {account} = await createAdminClient();
         const session = await account.createSession(accountId, password);
+        console.log("Session Created:", session);
 
-        (await cookies()).set('appwrite-session', session.secret, {
-            path:'/',
+        const cookieStore = await cookies();
+        cookieStore.set('appwrite-session', session.secret, {
+            path: '/',
             httpOnly: true,
-            sameSite : 'strict',
-            secure:true
-        })
+            sameSite: 'strict',
+            secure: true
+        });
+        console.log("Cookie Set:", cookieStore.get('appwrite-session'));
 
-        return parseStringify({sessionId : session.$id})
-
-    }catch(error){
-       handleError(error, "Failed to verify OTP") 
+        return parseStringify({sessionId: session.$id});
+    } catch (error) {
+        handleError(error, "Failed to verify OTP");
     }
+};
 
+export const getCurrentUser = async() => {
+    const {database, account} = await createSessionClient()
+
+    const result = await account.get()
+
+    const user = await database.listDocuments(
+        appWriteConfig.databaseId,
+        appWriteConfig.usersCollectionId,
+        [Query.equal("accountId", result.$id)],
+
+    )
+
+    if(user.total <= 0) return null;
+
+    return parseStringify(user.documents[0])
 }
-
-export const getCurrentUser = async() => {}
